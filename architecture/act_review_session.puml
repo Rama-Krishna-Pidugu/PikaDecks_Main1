@@ -1,0 +1,22 @@
+@startuml
+start
+:User initiates review session;
+:Fetch due cards for deck (next_review_at <= now);
+if (Due cards exist?) then (Yes)
+  while (For each card in queue) is (Has more cards)
+    :Show Question;
+    :User taps Flip Card;
+    :Show Answer & Explanation;
+    :User selects rating (Again, Hard, Good, Easy);
+    :Submit card rating to POST /reviews/{id};
+    :Recalculate interval & ease factor (SM-2 SRS algorithm);
+    :Save review history record;
+    :Update card stats (streak days studied);
+  endwhile
+  :Session Completed;
+  stop
+else (No)
+  :Display "All caught up" message;
+  stop
+endif
+@enduml

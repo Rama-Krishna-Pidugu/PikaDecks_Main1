@@ -1,0 +1,18 @@
+@startuml
+[*] --> pending : User selects plan and checkout starts
+
+pending --> active : Checkout succeeds & Payment verified
+pending --> [*] : Timeout / Cancelled by user
+
+active --> cancelled : Auto-renew disabled / cancelled
+active --> expired : Subscription window lapses without payment
+active --> in_grace_period : Payment fails, in billing retry cycle
+
+in_grace_period --> active : Payment succeeds during grace period
+in_grace_period --> expired : Grace period ends without payment
+
+cancelled --> expired : Expiry date reached
+
+expired --> active : User purchases new subscription / renews
+expired --> [*] : Account deletion
+@enduml

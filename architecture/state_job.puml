@@ -1,0 +1,20 @@
+@startuml
+[*] --> queued : Job enqueued to SQS
+queued --> processing : Worker picks up message
+
+state processing {
+  [*] --> extracting : Extracting text/transcript
+  extracting --> chunking : Splitting text into chunks
+  chunking --> calling_llm : Requesting cards from Groq/Gemini
+  calling_llm --> deduplicating : Ranking & filtering duplicates
+  deduplicating --> creating_deck : Saving cards and creating deck
+}
+
+processing --> completed : Generation succeeded & Deck saved
+processing --> failed : LLM failed / validation failed / S3 error
+processing --> cancelled : Aborted by user via abort API
+
+completed --> [*]
+failed --> [*]
+cancelled --> [*]
+@enduml

@@ -1,0 +1,28 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+
+partition "GitHub Repository" {
+  (*) --> "Git Push / Pull Request"
+  --> "Trigger GitHub Actions"
+}
+
+partition "Continuous Integration (CI)" {
+  "Trigger GitHub Actions" --> "Lint Code (flake8 / eslint)"
+  "Lint Code (flake8 / eslint)" --> "Run Backend Tests (pytest)"
+  "Run Backend Tests (pytest)" --> "Run Frontend Type-check (tsc)"
+}
+
+partition "Continuous Deployment (CD)" {
+  if "Tests Passed & Branch is Main?" then
+    -->[Yes] "Install Dependencies"
+    "Install Dependencies" --> "Serverless Deploy (ap-south-1)"
+    "Serverless Deploy (ap-south-1)" --> "Deploy WebApp to Vercel"
+    "Deploy WebApp to Vercel" --> "Successful Deployment"
+  else
+    -->[No] "Notify Commit Failure"
+    "Notify Commit Failure" --> (*)
+  endif
+}
+
+"Successful Deployment" --> (*)
+@enduml

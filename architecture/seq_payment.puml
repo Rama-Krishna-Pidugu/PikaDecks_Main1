@@ -1,0 +1,28 @@
+@startuml
+actor User
+participant WebApp as "React Web App"
+participant Razorpay as "Razorpay Payment Gateway"
+participant Backend as "FastAPI Backend"
+database Supabase as "Supabase Postgres"
+
+== Website Subscription Purchase ==
+User -> WebApp : Click Upgrade to Pro
+WebApp -> Backend : POST /billing/web/create-subscription
+Backend -> Razorpay : API call: Create Subscription (Plan ID)
+Razorpay --> Backend : Return subscription_id
+Backend --> WebApp : Return payment info
+WebApp -> Razorpay : Launch Checkout widget & User pays
+Razorpay -> User : Process billing
+Razorpay -> WebApp : Return razorpay_signature / razorpay_payment_id
+
+WebApp -> Backend : POST /billing/web/verify-subscription
+Backend -> Backend : Validate signature
+Backend -> Supabase : UPDATE user subscription state & SET plan_type='pro'
+Backend --> WebApp : Return subscription status (Unlock Pro)
+
+== Razorpay Subscription Webhook ==
+Razorpay -> Backend : POST /billing/razorpay/webhook (signature headers)
+Backend -> Backend : Validate webhook authenticity
+Backend -> Supabase : Update subscription expiration / status
+Backend --> Razorpay : HTTP 200 OK
+@enduml

@@ -1,0 +1,34 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+
+actor "Student / Scholar" as User
+actor "System Admin" as Admin
+
+package "PikaDecks Platform" {
+    usecase "Login & Register" as UC_Auth
+    usecase "View Study Dashboard" as UC_Dashboard
+    usecase "Upload PDF document" as UC_UploadPDF
+    usecase "Convert YouTube video" as UC_UploadYT
+    usecase "Manage Manual Notes" as UC_Notes
+    usecase "Review Spaced Repetition Cards" as UC_SRS
+    usecase "Free Quota Check" as UC_Quota
+    usecase "Subscribe to Premium Plan" as UC_Pay
+    usecase "Integrate IDE via MCP Server" as UC_MCP
+}
+
+User --> UC_Auth
+User --> UC_Dashboard
+User --> UC_UploadPDF
+User --> UC_UploadYT
+User --> UC_Notes
+User --> UC_SRS
+User --> UC_Pay
+User --> UC_MCP
+
+UC_UploadPDF ..> UC_Quota : <<include>>
+UC_UploadYT ..> UC_Quota : <<include>>
+UC_Notes ..> UC_Quota : <<include>>
+
+Admin --> UC_Pay : Monitor billing
+Admin --> UC_Dashboard : Manage global performance
+@enduml

@@ -1,0 +1,33 @@
+@startuml
+start
+:User selects document (PDF/YouTube Link);
+:Backend validates user entitlements & active jobs;
+if (Quota exceeded or concurrent jobs limit hit?) then (Yes)
+  :Return 429 Limit Exceeded;
+  stop
+else (No)
+  :Save pending Upload/Generation record;
+  :Enqueue job metadata in SQS;
+  fork
+    :Extract text (from S3 PDF or YouTube transcript);
+    if (Extraction fails or text < 10 chars?) then (Yes)
+      :Set job status = failed;
+      stop
+    else (No)
+      :Create generation chunks;
+    endif
+  fork again
+    :Monitor active job in frontend via polling /active;
+  end fork
+  :Queue chunk generation tasks;
+  while (For each chunk) is (Not completed)
+    :Call AI provider (Groq/Gemini);
+    :Save raw generated flashcards;
+  endwhile
+  :Deduplicate and rank generated cards;
+  :Create Deck and save accepted Cards;
+  :Set status = completed;
+  :Consume/Deduct AI rolling quota;
+  stop
+endif
+@enduml

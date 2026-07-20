@@ -1,0 +1,118 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+package "Domain & Routing" as DomainPackage {
+    component "Cloudflare DNS\n(pikadecks.app)" as DNS
+    component "Cloudflare Tunnel" as Tunnel
+}
+
+package "User Interface & Auth" as UIPackage {
+    component "Vercel Web Server" as Vercel
+    component "Clerk JWT Authentication" as Clerk
+}
+
+package "External Integrations" as ExtPackage {
+    component "Razorpay Subscription" as Razorpay
+    component "Google Play Console" as GooglePlay
+    component "Firebase Cloud (FCM)" as FCM
+    component "AI (Groq & Gemini)" as AI
+}
+
+package "AWS Cloud Platform" as AWSPackage {
+    component "FastAPI API Gateway" as APIGateway
+    component "FastAPI Lambda" as LambdaAPI
+    component "SSM Parameter Store" as SSM
+    component "S3 (pikadecks-pdfs)" as S3
+    
+    component "AWS EventBridge" as EventBridge
+    
+    package "Cron / Scheduled Lambdas" as CronLambdas {
+        component "Notification Service" as Worker_Notification
+        component "Stale Job Sweeper" as Worker_Sweeper
+        component "Provider Health Check" as Worker_Health
+    }
+    
+    package "SQS Messaging Pipeline" as SQSPackage {
+        queue "Upload SQS" as SQS_Upload
+        queue "Gemini SQS" as SQS_Gemini
+        queue "Groq SQS" as SQS_Groq
+        queue "Reduce SQS" as SQS_Reduce
+        queue "YouTube SQS" as SQS_YouTube
+    }
+    
+    package "AWS Lambda Workers" as WorkersPackage {
+        component "Orchestrator" as Worker_Orchestrator
+        component "Gemini Worker" as Worker_Gemini
+        component "Groq Worker" as Worker_Groq
+        component "Reducer Worker" as Worker_Reducer
+        component "YouTube Worker" as Worker_YouTube
+    }
+}
+
+package "Primary Storage" as DbPackage {
+    database "Supabase Postgres" as Supabase
+}
+
+' Layout alignment hints
+DomainPackage -down-> UIPackage
+UIPackage -down-> AWSPackage
+AWSPackage -down-> DbPackage
+ExtPackage -left-> AWSPackage
+
+' Routing (Orange)
+DNS -[#D97706]down-> Vercel : "Route Web"
+DNS -[#D97706]down-> APIGateway : "Route API"
+DNS -[#D97706]down-> Tunnel : "Route MCP"
+
+' API Gateway & Auth (Orange)
+APIGateway -[#D97706]down-> LambdaAPI : "Invoke"
+LambdaAPI -[#D97706]right-> Clerk : "Validate tokens"
+
+' Database operations (Green)
+LambdaAPI -[#16A34A]down-> Supabase : "SQL Ops"
+Worker_Notification -[#16A34A]down-> Supabase : "Select notifications"
+Worker_Sweeper -[#16A34A]down-> Supabase : "Clean stale jobs"
+Worker_Gemini -[#16A34A]down-> Supabase : "Insert chunks"
+Worker_Groq -[#16A34A]down-> Supabase : "Insert chunks"
+Worker_Reducer -[#16A34A]down-> Supabase : "Deduplicate & Save"
+Worker_YouTube -[#16A34A]down-> Supabase : "Save deck"
+
+' S3 & Secrets (Gray)
+LambdaAPI -[#6B7280]down-> S3 : "S3 Presigned URLs"
+Worker_Health -[#6B7280]up-> SSM : "Update state"
+
+' SQS Pipeline & AI Generation (Blue)
+LambdaAPI -[#2563EB]down-> SQS_Upload : "Enqueue PDF"
+LambdaAPI -[#2563EB]down-> SQS_YouTube : "Enqueue YouTube"
+
+SQS_Upload -[#2563EB]down-> Worker_Orchestrator : "Dequeue"
+Worker_Orchestrator -[#2563EB]up-> S3 : "Download PDF"
+Worker_Orchestrator -[#2563EB]down-> SQS_Gemini : "Dispatch chunk"
+Worker_Orchestrator -[#2563EB]down-> SQS_Groq : "Dispatch chunk"
+
+SQS_Gemini -[#2563EB]down-> Worker_Gemini : "Dequeue"
+Worker_Gemini -[#2563EB]right-> AI : "API Call"
+Worker_Gemini -[#2563EB]down-> SQS_Reduce : "Enqueue"
+
+SQS_Groq -[#2563EB]down-> Worker_Groq : "Dequeue"
+Worker_Groq -[#2563EB]right-> AI : "API Call"
+Worker_Groq -[#2563EB]down-> SQS_Reduce : "Enqueue"
+
+SQS_Reduce -[#2563EB]down-> Worker_Reducer : "Dequeue"
+SQS_YouTube -[#2563EB]down-> Worker_YouTube : "Dequeue"
+Worker_YouTube -[#2563EB]right-> AI : "API Call"
+
+' EventBridge & Push Notifications (Purple)
+EventBridge -[#7C3AED]down-> Worker_Notification : "Schedule trigger"
+EventBridge -[#7C3AED]down-> Worker_Sweeper : "Schedule trigger"
+EventBridge -[#7C3AED]down-> Worker_Health : "Schedule trigger"
+Worker_Notification -[#7C3AED]right-> FCM : "Send push notifications"
+Worker_Reducer -[#7C3AED]right-> FCM : "Success Push"
+Worker_Health -[#7C3AED]right-> AI : "Ping models"
+
+' Billing & Payments (Red)
+LambdaAPI <-[#DC2626]left- Razorpay : "Webhooks"
+LambdaAPI <-[#DC2626]left- GooglePlay : "RTDN Updates"
+@enduml

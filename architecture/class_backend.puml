@@ -1,0 +1,83 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+
+class APIRouter {
+  +prefix: str
+  +tags: list
+  +add_api_route()
+}
+
+class UploadsRouter {
+  +get_upload_usage()
+  +process_pdf_async()
+  +abort_upload_processing()
+  +get_active_jobs()
+  +process_notes()
+}
+
+class YoutubeRouter {
+  +generate_youtube_flashcards()
+  +get_youtube_generation()
+  +abort_youtube_generation()
+}
+
+class ReviewsRouter {
+  +start_session()
+  +submit_rating()
+  +review_overview()
+}
+
+class AIOrchestrator {
+  +generate_flashcards_with_provider()
+  +generate_summary_with_provider()
+  +choose_round_robin_provider()
+}
+
+class QuotaService {
+  +get_ai_generation_quota()
+  +consume_ai_generation_quota()
+}
+
+class SRSEngine {
+  +get_review_overview()
+  +start_review_session()
+  +submit_review_rating()
+}
+
+class BillingService {
+  +verify_razorpay_subscription()
+  +verify_google_play_purchase()
+  +is_pro_user()
+}
+
+class UploadProcessBody {
+  +file_url: str
+  +file_name: str
+  +file_type: str
+  +num_cards: int
+}
+
+class NotesProcessBody {
+  +title: str
+  +notes: str
+  +num_cards: int
+}
+
+class YouTubeGenerateBody {
+  +url: str
+  +title: str
+  +num_cards: int
+  +languages: list
+}
+
+UploadsRouter ..> UploadProcessBody : parses
+UploadsRouter ..> NotesProcessBody : parses
+YoutubeRouter ..> YouTubeGenerateBody : parses
+
+UploadsRouter --> QuotaService : checks limits
+UploadsRouter --> AIOrchestrator : dispatches jobs
+YoutubeRouter --> AIOrchestrator : dispatches jobs
+ReviewsRouter --> SRSEngine : executes SM-2 algorithm
+
+QuotaService --> BillingService : checks Pro status to bypass limits
+@enduml

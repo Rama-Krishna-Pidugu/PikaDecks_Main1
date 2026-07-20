@@ -1,0 +1,104 @@
+graph TB
+    subgraph DomainRouting["Domain & Routing"]
+        DNS["Cloudflare DNS (pikadecks.app)"]
+        Tunnel["Cloudflare Tunnel"]
+    end
+
+    subgraph UserInterfaceAuth["User Interface & Auth"]
+        Vercel["Vercel Web Server"]
+        Clerk["Clerk JWT Authentication"]
+    end
+
+    subgraph AWSCloud["AWS Cloud Platform"]
+        APIGateway["FastAPI API Gateway"]
+        LambdaAPI["FastAPI Lambda Function"]
+        SSM["SSM Parameter Store"]
+        S3["S3 Storage (pikadecks-pdfs)"]
+        EventBridge["AWS EventBridge"]
+
+        subgraph CronLambdas["Cron / Scheduled Lambdas"]
+            Worker_Notification["Notification Service"]
+            Worker_Sweeper["Stale Job Sweeper"]
+            Worker_Health["Provider Health Check"]
+        end
+
+        subgraph SQSPipeline["SQS Messaging Pipeline"]
+            SQS_Upload[("Upload SQS Queue")]
+            SQS_Gemini[("Gemini SQS Queue")]
+            SQS_Groq[("Groq SQS Queue")]
+            SQS_Reduce[("Reduce SQS Queue")]
+            SQS_YouTube[("YouTube SQS Queue")]
+        end
+
+        subgraph Workers["AWS Lambda Workers"]
+            Worker_Orchestrator["Orchestrator Worker"]
+            Worker_Gemini["Gemini Worker"]
+            Worker_Groq["Groq Worker"]
+            Worker_Reducer["Reducer Worker"]
+            Worker_YouTube["YouTube Worker"]
+        end
+    end
+
+    subgraph ExternalIntegrations["External Integrations"]
+        Razorpay["Razorpay Subscription Subsystem"]
+        GooglePlay["Google Play Console Subsystem"]
+        FCM["Firebase Cloud Messaging (FCM)"]
+        AI["AI Providers (Groq & Gemini)"]
+    end
+
+    subgraph PrimaryStorage["Primary Storage"]
+        Supabase[("Supabase Postgres Database")]
+    end
+
+    %% Relationships
+    DNS -->|Route Web Traffic| Vercel
+    DNS -->|Route API Traffic| APIGateway
+    DNS -->|Route MCP Traffic| Tunnel
+
+    APIGateway -->|Invoke handler| LambdaAPI
+    LambdaAPI -->|Validate tokens| Clerk
+    LambdaAPI -->|SQL Operations| Supabase
+    LambdaAPI -->|S3 Presigned URL signatures| S3
+    LambdaAPI -->|Enqueue PDF| SQS_Upload
+    LambdaAPI -->|Enqueue YouTube| SQS_YouTube
+
+    %% EventBridge triggers
+    EventBridge -->|Schedule trigger| Worker_Notification
+    EventBridge -->|Schedule trigger| Worker_Sweeper
+    EventBridge -->|Schedule trigger| Worker_Health
+
+    %% Notification Lambda
+    Worker_Notification -->|Select notifications| Supabase
+    Worker_Notification -->|Send push notifications| FCM
+
+    %% Sweeper & Health Lambdas
+    Worker_Sweeper -->|Clean stale jobs| Supabase
+    Worker_Health -->|Ping models| AI
+    Worker_Health -->|Update state| SSM
+
+    %% SQS Workers
+    SQS_Upload -->|Dequeue| Worker_Orchestrator
+    Worker_Orchestrator -->|Download PDF| S3
+    Worker_Orchestrator -->|Dispatch chunk| SQS_Gemini
+    Worker_Orchestrator -->|Dispatch chunk| SQS_Groq
+
+    SQS_Gemini -->|Dequeue| Worker_Gemini
+    Worker_Gemini -->|API Calls| AI
+    Worker_Gemini -->|Insert chunk results| Supabase
+    Worker_Gemini -->|Enqueue reduction| SQS_Reduce
+
+    SQS_Groq -->|Dequeue| Worker_Groq
+    Worker_Groq -->|API Calls| AI
+    Worker_Groq -->|Insert chunk results| Supabase
+    Worker_Groq -->|Enqueue reduction| SQS_Reduce
+
+    SQS_Reduce -->|Dequeue| Worker_Reducer
+    Worker_Reducer -->|Deduplicate & Insert Deck/Cards| Supabase
+    Worker_Reducer -->|Trigger success alerts| FCM
+
+    SQS_YouTube -->|Dequeue| Worker_YouTube
+    Worker_YouTube -->|API Calls| AI
+    Worker_YouTube -->|Insert YouTube Deck/Cards| Supabase
+
+    Razorpay -->|Webhook billing updates| LambdaAPI
+    GooglePlay -->|RTDN subscription updates| LambdaAPI

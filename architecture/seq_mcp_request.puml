@@ -1,0 +1,30 @@
+@startuml
+actor User as "Claude / Cursor Client"
+participant MCPServer as "FastMCP Server"
+participant Backend as "FastAPI Backend"
+database Supabase as "Supabase Postgres"
+
+== OAuth Sign-In Flow ==
+User -> MCPServer : Trigger Connection
+MCPServer --> User : Prompt for Login (OAuth Consent URL)
+User -> Backend : Open Browser for consent
+Backend --> User : Redirect with OAuth Auth Code
+User -> MCPServer : Send code
+MCPServer -> Backend : POST /oauth/token (Exchange code)
+Backend --> MCPServer : Return Access Token & Refresh Token
+
+== Tool Execution Flow ==
+User -> MCPServer : Run Tool (e.g. list_decks)
+MCPServer -> MCPServer : verify_token(JWT)
+alt Token Valid
+    MCPServer -> Backend : GET /decks (With Bearer Access Token)
+    Backend -> Supabase : SELECT * FROM decks WHERE user_id
+    Supabase --> Backend : Return data
+    Backend --> MCPServer : Return deck list
+    MCPServer --> User : Output JSON representation
+else Token Expired
+    MCPServer -> Backend : POST /oauth/token (grant_type=refresh_token)
+    Backend --> MCPServer : Return new Access Token
+    MCPServer -> Backend : Retry tool API call
+end
+@enduml

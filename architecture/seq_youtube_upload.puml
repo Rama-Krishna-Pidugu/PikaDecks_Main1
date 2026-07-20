@@ -1,0 +1,32 @@
+@startuml
+actor User
+participant WebApp as "React Web App"
+participant Backend as "FastAPI Backend"
+database Supabase as "Supabase Postgres"
+participant Queue as "SQS Queues"
+participant Workers as "Lambda Pipeline Workers"
+participant AI as "AI Providers (Groq/Gemini)"
+
+User -> WebApp : Submit YouTube video URL
+WebApp -> Backend : POST /youtube/generate
+Backend -> Backend : require_youtube_generation_access (Check Quota)
+Backend -> Supabase : Insert into youtube_generations (status=queued)
+Backend -> Queue : Send message to YouTubeProcessingQueue
+Backend --> WebApp : Return generation_id
+
+Queue -> Workers : Trigger youtubeWorker
+Workers -> Workers : Extract video transcripts (RapidAPI/Local fallback)
+Workers -> Supabase : Check user_generation_cache (for identical video_id & count)
+alt Cache Hit
+    Workers -> Supabase : Clone cards & Create Deck
+    Workers -> Supabase : Update status to completed
+    Workers -> Backend : consume_ai_generation_quota
+else Cache Miss
+    Workers -> AI : Request summarized transcript chunks
+    Workers -> AI : Generate flashcards from summaries
+    Workers -> Supabase : Create Deck & Save cards to database
+    Workers -> Supabase : Save to user_generation_cache
+    Workers -> Supabase : Update status to completed
+    Workers -> Backend : consume_ai_generation_quota
+end
+@enduml

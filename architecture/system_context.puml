@@ -1,0 +1,42 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+skinparam ArrowColor #333333
+skinparam ActorBorderColor #3F51B5
+skinparam ActorBackgroundColor #E8EAF6
+
+actor "Student / Scholar" as User
+
+package "PikaDecks Ecosystem" {
+    [PikaDecks Web App] as WebApp
+    [PikaDecks Mobile App] as MobileApp
+    [PikaDecks API Backend] as Backend
+    [PikaDecks MCP Server] as MCPServer
+}
+
+package "Third-Party & External Services" {
+    [Clerk Auth] as Clerk
+    [Razorpay Payment] as Razorpay
+    [Google Play Billing] as GooglePlay
+    [Supabase Database] as Supabase
+    [AWS S3 & SQS] as AWS
+    component "AI Providers (Groq/Gemini)" as AIProviders
+}
+
+User --> WebApp : Uses (Study, Upload)
+User --> MobileApp : Uses (Study, Swipe)
+User --> MCPServer : Integrates with IDE (Claude Desktop)
+
+WebApp --> Clerk : Authenticates
+WebApp --> Backend : API Calls (REST)
+WebApp --> Razorpay : Purchases Subscriptions
+
+MobileApp --> Clerk : Authenticates
+MobileApp --> Backend : API Calls (REST)
+MobileApp --> GooglePlay : Purchases Subscriptions
+
+Backend --> Supabase : Reads/Writes Data
+Backend --> AWS : S3 Uploads & SQS Queues
+Backend --> AIProviders : Generates Flashcards
+
+MCPServer --> Backend : Verifies OAuth & Syncs Decks
+@endumu

@@ -1,0 +1,50 @@
+@startuml
+!include <C4/C4_Container.puml>
+LAYOUT_WITH_LEGEND()
+
+Person(user, "User / Student", "Uses the website or mobile app to study and generate cards.")
+
+System_Boundary(frontend, "Frontend Clients") {
+    Container(web, "Web Application", "React, Vite, TanStack", "Provides dashboard, uploads, manual notes editor, payments, and SRS cards review.")
+    Container(mobile, "Mobile Application", "React Native, Expo", "Provides mobile SRS swiping interface, offline reviews, and google billing.")
+}
+
+System_Boundary(backend_services, "PikaDecks Backend & MCP Services") {
+    Container(api, "FastAPI Backend Gateway", "Python, FastAPI", "API Router, Clerk JWT Auth middleware, Quota & Billing endpoints, OAuth login.")
+    Container(mcp, "FastMCP Server", "Python, FastMCP", "OAuth client, Claude Desktop tool adapter to read/write study decks.")
+    Container(workers, "SQS Pipeline Workers", "Python, Boto3, PyPDF", "Processes long-running uploads, chunks text, generates AI summaries, validates cards.")
+}
+
+System_Ext(clerk, "Clerk Auth Service", "Handles user login, sessions, and social connections.")
+System_Ext(razorpay, "Razorpay API", "Performs website subscription payments and sends webhooks.")
+System_Ext(play, "Google Play Console", "Manages Android subscriptions and sends RTDN webhooks.")
+System_Ext(openai, "OpenAI / Gemini / Groq", "AI providers generating flashcard JSON chunks.")
+
+Db_Ext(supabase, "Supabase Postgres", "Stores user profiles, decks, cards, review schedules, and usage statistics.")
+Db_Ext(s3, "AWS S3 Bucket", "Stores uploaded raw study PDF documents.")
+Queue_Ext(sqs, "AWS SQS Queues", "Queues for upload-processing, Gemini tasks, Groq tasks, and Reducer.")
+
+Rel(user, web, "Browses and uploads")
+Rel(user, mobile, "Swipes and reviews")
+
+Rel(web, clerk, "Redirects login")
+Rel(mobile, clerk, "Login tokens")
+Rel(web, api, "API calls (bearer token)")
+Rel(mobile, api, "API calls (bearer token)")
+
+Rel(api, supabase, "SQL queries")
+Rel(api, s3, "Generates S3 presigned URLs")
+Rel(api, sqs, "Enqueues PDF/YouTube jobs")
+
+Rel(sqs, workers, "Triggers worker lambdas")
+Rel(workers, s3, "Downloads PDFs")
+Rel(workers, openai, "Calls LLM APIs (Gemini/Groq)")
+Rel(workers, supabase, "Inserts decks and cards")
+
+Rel(web, razorpay, "Payment flow")
+Rel(razorpay, api, "Webhook events")
+Rel(mobile, play, "Payment flow")
+Rel(play, api, "RTDN webhooks")
+
+Rel(mcp, api, "Authenticates via OAuth & calls API")
+@enduml

@@ -1,0 +1,59 @@
+@startuml
+
+skinparam backgroundColor #FFFFFF
+
+package "React Web App Component" {
+    [Vite Router & Pages] as WebPages
+    [React Context Store (Processing Context)] as WebContext
+    [TanStack Queries & Mutations] as WebQueries
+    [Theme System & Components] as WebUI
+}
+
+package "FastAPI Backend Service Component" {
+    package "API Router Layer" {
+        [Uploads API Router] as UploadsRouter
+        [YouTube API Router] as YoutubeRouter
+        [Reviews API Router] as ReviewsRouter
+        [Stats API Router] as StatsRouter
+        [MCP API Router] as MCPRouter
+    }
+    
+    package "Core Middleware" {
+        [Clerk Authentication Handler] as AuthMiddleware
+        [Rate Limiter] as RateLimit
+    }
+
+    package "Service & Operations Layer" {
+        [AI Orchestrator Service] as AIOrchestrator
+        [SRS Review Engine] as SRSEngine
+        [Quota & Limits Manager] as QuotaManager
+        [Billing & Subscription Manager] as BillingService
+    }
+    
+    database "Supabase Storage Client" as DBClients
+}
+
+WebPages --> WebQueries : Uses
+WebPages --> WebContext : Subscribes to
+WebQueries --> UploadsRouter : /uploads/
+WebQueries --> YoutubeRouter : /youtube/
+WebQueries --> ReviewsRouter : /reviews/
+WebQueries --> StatsRouter : /stats/
+
+UploadsRouter --> AuthMiddleware : Authenticates via
+YoutubeRouter --> AuthMiddleware : Authenticates via
+ReviewsRouter --> AuthMiddleware : Authenticates via
+
+UploadsRouter --> AIOrchestrator : PDF processing tasks
+YoutubeRouter --> AIOrchestrator : YouTube transcript tasks
+ReviewsRouter --> SRSEngine : Scheduling & Ratings submissions
+StatsRouter --> SRSEngine : Compute streak & progress
+MCPRouter --> SRSEngine : Read/Write Decks
+
+AIOrchestrator --> RateLimit : Respects limits
+AIOrchestrator --> QuotaManager : Decrements limit on success
+BillingService --> QuotaManager : Upgrades to Unlimited Pro
+
+AIOrchestrator --> DBClients : supabase-py calls
+SRSEngine --> DBClients : supabase-py calls
+@enduml

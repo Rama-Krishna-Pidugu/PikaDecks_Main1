@@ -1,0 +1,47 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+skinparam packageStyle rectangle
+
+package "pikadecks-backend (Root)" {
+    package "app" as AppPkg {
+        package "models" as ModelsPkg {
+            [uploads.py] as ModelUploads
+            [youtube.py] as ModelYoutube
+            [reviews.py] as ModelReviews
+        }
+        package "routes" as RoutesPkg {
+            [uploads.py] as RouteUploads
+            [youtube.py] as RouteYoutube
+            [reviews.py] as RouteReviews
+            [stats.py] as RouteStats
+            [mcp.py] as RouteMCP
+        }
+        package "services" as ServicesPkg {
+            [ai_orchestrator.py] as SvcOrchestrator
+            [ai_usage_quota.py] as SvcQuota
+            [billing.py] as SvcBilling
+            [entitlements.py] as SvcEntitlements
+            [srs.py] as SvcSRS
+        }
+        
+        [database.py] as DB_Py
+        [observability.py] as Obs_Py
+        [pipeline_workers.py] as Workers_Py
+        [cleanup_worker.py] as Cleanup_Py
+    }
+    
+    package "notificationservices" as NotifPkg {
+        [lambda_function.py] as NotifLambda
+    }
+    
+    [lamda_handler.py] as LambdaHandler
+}
+
+RoutesPkg --> ServicesPkg : Uses services
+RoutesPkg --> ModelsPkg : Decodes JSON requests
+Workers_Py --> ServicesPkg : Calls AIOrchestrator / SRS
+LambdaHandler --> RoutesPkg : Routes requests
+
+ServicesPkg --> DB_Py : Query Database
+ServicesPkg --> Obs_Py : Sentry & Logging
+@enduml

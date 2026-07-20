@@ -1,0 +1,37 @@
+@startuml
+start
+:User initiates payment;
+if (Platform is Web?) then (Yes)
+  :Create Razorpay subscription;
+  :Launch Razorpay Checkout;
+  :User submits payment;
+  if (Payment Successful?) then (Yes)
+    :Send verification signature to Backend;
+    :Verify Razorpay signature;
+    if (Signature Valid?) then (Yes)
+      :Update user subscription row;
+      :Activate Pro user entitlement;
+      stop
+    else (No)
+      :Raise Payment Verification Error;
+      stop
+    endif
+  else (No)
+    :Cancel Checkout;
+    stop
+  endif
+else (No)
+  :User initiates Android Google Play Billing;
+  :Complete Play purchase flow;
+  :Send purchase token to backend;
+  :Verify token against Google Play API;
+  if (Purchase token verified?) then (Yes)
+    :Save user subscription;
+    :Set active=true, plan_type=pro;
+    stop
+  else (No)
+    :Reject Android purchase activation;
+    stop
+  endif
+endif
+@enduml

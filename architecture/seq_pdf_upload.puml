@@ -1,0 +1,39 @@
+@startuml
+actor User
+participant WebApp as "React Web App"
+participant Backend as "FastAPI Backend"
+database Supabase as "Supabase Postgres"
+participant S3 as "AWS S3 / Supabase Storage"
+participant Queue as "SQS Queues"
+participant Workers as "Lambda Pipeline Workers"
+participant AI as "AI Providers (Groq/Gemini)"
+
+User -> WebApp : Selects PDF file & submits
+WebApp -> Backend : GET /uploads/presigned-url?file_name=notes.pdf
+Backend --> WebApp : Returns upload_url and headers
+WebApp -> S3 : PUT file binary directly to S3
+S3 --> WebApp : HTTP 200 OK
+
+WebApp -> Backend : POST /uploads/process-async
+Backend -> Backend : require_pdf_generation_access (Check Quota)
+Backend -> Supabase : INSERT INTO uploads (status=pending)
+Backend -> Queue : Send message (upload_id, user_id) to UploadProcessingQueue
+Backend --> WebApp : Return upload_id (Redirect/Show polling loader)
+
+Queue -> Workers : Trigger uploadWorker
+Workers -> S3 : Download PDF content
+Workers -> Workers : Extract text & Calculate chunk boundaries
+Workers -> Supabase : Insert generation_jobs & generation_chunks
+Workers -> Queue : Dispatch chunk messages to Gemini/Groq SQS queues
+
+Queue -> Workers : Trigger gemini/groqChunkWorkers
+Workers -> AI : Call LLM with chunk text (Generate card candidates)
+Workers -> Supabase : Insert candidates to generated_cards
+Workers -> Queue : Send job finished message to ReduceQueue
+
+Queue -> Workers : Trigger reducerWorker
+Workers -> Supabase : Rank candidates & deduplicate
+Workers -> Supabase : Create Deck & Insert accepted cards
+Workers -> Supabase : Update uploads to completed (deck_id)
+Workers -> Backend : consume_ai_generation_quota (Deduct Quota)
+@enduml

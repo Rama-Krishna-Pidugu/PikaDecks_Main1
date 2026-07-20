@@ -1,0 +1,104 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+
+entity "users" as users {
+  * user_id : uuid <<PK>>
+  --
+  clerk_user_id : text
+  name : text
+  email : text
+  plan_type : text
+  created_at : timestamp
+  account_status : text
+}
+
+entity "decks" as decks {
+  * deck_id : uuid <<PK>>
+  --
+  user_id : uuid <<FK>>
+  title : text
+  description : text
+  visibility : text
+  source_pdf_url : text
+  created_at : timestamp
+}
+
+entity "cards" as cards {
+  * card_id : uuid <<PK>>
+  --
+  deck_id : uuid <<FK>>
+  question : text
+  answer : text
+  explanation : text
+  card_order : integer
+  created_at : timestamp
+}
+
+entity "reviews" as reviews {
+  * review_id : uuid <<PK>>
+  --
+  user_id : uuid <<FK>>
+  card_id : uuid <<FK>>
+  deck_id : uuid <<FK>>
+  next_review_at : timestamp
+  ease_factor : double precision
+  interval_days : integer
+  repetitions : integer
+  learning_state : text
+}
+
+entity "uploads" as uploads {
+  * upload_id : uuid <<PK>>
+  --
+  user_id : uuid <<FK>>
+  file_url : text
+  file_name : text
+  processing_status : text
+  processing_progress : integer
+  deck_id : uuid <<FK>>
+  completed_at : timestamp
+}
+
+entity "youtube_generations" as youtube_generations {
+  * generation_id : uuid <<PK>>
+  --
+  user_id : uuid <<FK>>
+  youtube_url : text
+  video_id : text
+  title : text
+  generation_status : text
+  processing_progress : integer
+  deck_id : uuid <<FK>>
+}
+
+entity "user_ai_usage_quotas" as user_ai_usage_quotas {
+  * user_id : uuid <<PK>> <<FK>>
+  --
+  usage_count : integer
+  quota_reset_at : timestamp
+  updated_at : timestamp
+}
+
+entity "user_subscriptions" as user_subscriptions {
+  * id : uuid <<PK>>
+  --
+  user_id : uuid <<FK>>
+  product_id : text
+  purchase_token : text
+  status : text
+  expires_at : timestamp
+}
+
+users ||--o{ decks : "owns"
+decks ||--o{ cards : "contains"
+users ||--o{ reviews : "studies"
+cards ||--|| reviews : "has"
+decks ||--o{ reviews : "categorizes"
+users ||--o{ uploads : "uploads"
+uploads ||--|| decks : "creates"
+users ||--o{ youtube_generations : "requests"
+youtube_generations ||--|| decks : "creates"
+users ||--|| user_ai_usage_quotas : "limited by"
+users ||--o{ user_subscriptions : "subscribes"
+
+@enduml

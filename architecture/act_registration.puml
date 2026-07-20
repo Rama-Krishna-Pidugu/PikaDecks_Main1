@@ -1,0 +1,21 @@
+@startuml
+start
+:User signs up in Clerk;
+if (Sign up successful?) then (Yes)
+  :Clerk generates user session JWT;
+  :Frontend calls POST /sync-user;
+  :Backend validates JWT session;
+  if (User exists in Supabase?) then (No)
+    :Create User record;
+    :Initialize userstats;
+    :Initialize rolling quotas;
+  else (Yes)
+    :Update User profile details;
+  endif
+  :User session activated;
+  stop
+else (No)
+  :Display signup error;
+  stop
+endif
+@enduml

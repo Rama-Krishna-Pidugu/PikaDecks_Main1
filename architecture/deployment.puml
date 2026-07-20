@@ -1,0 +1,60 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+
+node "Vercel CDN" as VercelNode {
+    artifact "React / Vite Web Application" as WebBuild
+}
+
+node "Expo EAS / App Stores" as AppStores {
+    artifact "React Native APK/IPA" as MobileBuild
+}
+
+node "Cloudflare Network" as CF {
+    component "Cloudflare CDN & SSL" as CFCDN
+    component "Cloudflare Tunnel (mcp.pikadecks.app)" as CFTunnel
+}
+
+node "AWS Cloud (ap-south-1)" as AWSCloud {
+    node "API Gateway" as APIGw
+    
+    node "Lambda Functions" as Lambdas {
+        component "FastAPI Gateway Lambda" as LambdaFastAPI
+        component "Upload/Worker Lambdas" as LambdaWorkers
+        component "Notification Service Lambda" as LambdaNotification
+    }
+    
+    node "AWS SQS" as SQSQueues {
+        queue "Upload Processing Queue" as SQS_Upload
+        queue "Gemini / Groq Queue" as SQS_LLM
+        queue "Reducer Queue" as SQS_Reduce
+    }
+    
+    node "SSM Parameter Store" as SSMStore
+    node "AWS S3" as S3Bucket {
+        storage "PDF Storage Bucket" as S3_PDFs
+    }
+}
+
+node "Supabase Cloud" as SupabaseNode {
+    database "Supabase Postgres DB" as SupabaseDB
+    storage "Storage Bucket Fallback" as SupabaseStorage
+}
+
+node "MCP Host Node (User Desktop)" as ClientDesktop {
+    component "Claude Desktop App" as ClaudeApp
+    component "FastMCP Server Container (Docker/Serverless)" as MCPServerApp
+}
+
+WebBuild --> CFCDN : Served via
+LambdaFastAPI --> SSMStore : Retrieves FCM/Google Play keys
+LambdaFastAPI --> SQSQueues : Enqueues async jobs
+LambdaWorkers --> SQSQueues : Subscribes to
+LambdaWorkers --> S3_PDFs : Reads/Writes PDFs
+LambdaWorkers --> SupabaseDB : Saves decks and cards
+LambdaNotification --> SupabaseDB : Queries streaks and reviews due
+
+ClaudeApp --> MCPServerApp : Connects via stdin/stdout
+MCPServerApp --> CFTunnel : Route requests
+CFTunnel --> LambdaFastAPI : Proxies to MCP HTTP routes
+
+@enduml

@@ -1,0 +1,19 @@
+@startuml
+actor User
+participant Client as "Frontend Client"
+participant Backend as "FastAPI Backend"
+database Supabase as "Supabase Postgres"
+
+User -> Client : Start Review session on Deck
+Client -> Backend : GET /reviews/session?deck_id={deckId}&limit=50
+Backend -> Supabase : SELECT * FROM reviews WHERE deck_id = {deckId} AND next_review_at <= now()
+Backend --> Client : Return list of due cards
+
+User -> Client : View card question & flip card
+User -> Client : Rate card difficulty (Again / Hard / Good / Easy)
+Client -> Backend : POST /reviews/{card_id} (Rating, Client Timestamp)
+Backend -> Backend : Calculate new ease_factor, interval, repetitions (SM-2 SRS algorithm)
+Backend -> Supabase : UPDATE reviews SET next_review_at, ease_factor, repetitions, learning_state
+Backend -> Supabase : INSERT INTO review_history (rating, reviewed_at)
+Backend --> Client : Return updated card scheduling metadata
+@enduml

@@ -1,0 +1,16 @@
+@startuml
+actor User
+participant WebApp as "React Web Version"
+participant Clerk as "Clerk Auth Service"
+participant Backend as "FastAPI Gateway"
+
+User -> WebApp : Click Login Button
+WebApp -> Clerk : Redirect to login form / social OAuth
+User -> Clerk : Submit credentials
+Clerk --> WebApp : Redirect back with Session Token (JWT)
+WebApp -> WebApp : Store Clerk JWT session state
+
+WebApp -> Backend : GET /uploads/usage (With Bearer Token)
+Backend -> Backend : Verify JWT against Clerk JWKS public keys
+Backend --> WebApp : Return usage limits
+@enduml

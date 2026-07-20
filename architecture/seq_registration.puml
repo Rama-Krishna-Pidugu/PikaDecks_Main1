@@ -1,0 +1,17 @@
+@startuml
+actor User
+participant WebApp as "React Web Version"
+participant Clerk as "Clerk Auth Service"
+participant Backend as "FastAPI Gateway"
+database Supabase as "Supabase Database"
+
+User -> WebApp : Click Signup
+WebApp -> Clerk : Enter details & sign up
+Clerk --> WebApp : Successful signup with JWT session
+WebApp -> Backend : POST /sync-user (Authorization Bearer Token)
+Backend -> Backend : Verify Token and Extract user details (email, id)
+Backend -> Supabase : INSERT INTO public.users ON CONFLICT UPDATE
+Backend -> Supabase : INSERT INTO public.user_stats (Initialize streaks)
+Backend -> Supabase : INSERT INTO public.user_ai_usage_quotas
+Backend --> WebApp : Return user plan & active state
+@enduml
