@@ -1,0 +1,71 @@
+name: EAS OTA Update
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: EAS update channel
+        required: true
+        default: production
+        type: choice
+        options:
+          - production
+          - preview
+          - development
+      message:
+        description: Update message
+        required: false
+        default: Manual OTA update
+  push:
+    branches:
+      - "ota/**"
+
+permissions:
+  contents: read
+
+jobs:
+  ota_update:
+    name: Publish OTA update
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run frontend typecheck
+        run: npm test
+
+      - name: Publish OTA update
+        env:
+          EXPO_PUBLIC_API_URL: https://zxd2zncyzh.execute-api.ap-south-1.amazonaws.com
+          EXPO_PUBLIC_ENABLE_BILLING: "true"
+          EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+        run: |
+          CHANNEL="${{ github.event.inputs.channel || 'production' }}"
+          if [ "$CHANNEL" = "production" ]; then
+            export EXPO_PUBLIC_APP_ENV="internal-testing"
+          else
+            export EXPO_PUBLIC_APP_ENV="$CHANNEL"
+          fi
+
+          eas update \
+            --channel "$CHANNEL" \
+            --message "${{ github.event.inputs.message || github.sha }}" \
+            --non-interactive

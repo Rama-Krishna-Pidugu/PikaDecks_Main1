@@ -1,0 +1,16 @@
+[project]
+name = "pikadecks-mcp"
+version = "1.0.0"
+description = "Phase 1 MCP server for PikaDecks connectivity checks"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi==0.115.6",
+    "uvicorn[standard]==0.34.0",
+    "mangum==0.19.0",
+    "mcp==1.27.1",
+    "sentry-sdk==2.20.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

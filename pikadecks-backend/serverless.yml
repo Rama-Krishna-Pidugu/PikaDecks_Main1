@@ -1,0 +1,377 @@
+service: pikadecks-backend
+
+useDotenv: true
+
+provider:
+  name: aws
+  runtime: python3.11
+  region: ap-south-1
+  stage: ${opt:stage, 'dev'}
+  httpApi:
+    cors:
+      allowedOrigins:
+        - '*'
+      allowedHeaders:
+        - '*'
+      allowedMethods:
+        - '*'
+  environment:
+    SUPABASE_URL: ${env:SUPABASE_URL}
+    SUPABASE_KEY: ${env:SUPABASE_KEY, env:SUPABASE_SERVICE_KEY}
+    OAUTH_JWT_SECRET: ${env:OAUTH_JWT_SECRET}
+    OAUTH_REFRESH_SECRET: ${env:OAUTH_REFRESH_SECRET}
+    FRONTEND_URL: ${env:FRONTEND_URL, 'https://pikadecks.app'}
+    CLERK_JWKS_URL: ${env:CLERK_JWKS_URL}
+    GROQ_API_KEY: ${env:GROQ_API_KEY, ''}
+    GROQ_MODEL: ${env:GROQ_MODEL, 'qwen/qwen3-32b'}
+    GEMINI_API_KEY: ${env:GEMINI_API_KEY, ''}
+    GEMINI_MODEL: ${env:GEMINI_MODEL, 'gemini-3.1-pro-preview'}
+    YOUTUBE_TRANSCRIPTOR_RAPIDAPI_KEY: ${env:YOUTUBE_TRANSCRIPTOR_RAPIDAPI_KEY, ''}
+    YOUTUBE_TRANSCRIPTOR_RAPIDAPI_HOST: ${env:YOUTUBE_TRANSCRIPTOR_RAPIDAPI_HOST, 'youtube-transcriptor.p.rapidapi.com'}
+    AI_GLOBAL_REQUESTS_PER_MINUTE: ${env:AI_GLOBAL_REQUESTS_PER_MINUTE, '28'}
+    AI_GLOBAL_TOKENS_PER_5_MINUTES: ${env:AI_GLOBAL_TOKENS_PER_5_MINUTES, '140000'}
+    AI_MAX_OUTPUT_TOKENS: ${env:AI_MAX_OUTPUT_TOKENS, '1800'}
+    BILLING_ENABLED: ${env:BILLING_ENABLED}
+    RAZORPAY_KEY_ID: ${env:RAZORPAY_KEY_ID}
+    RAZORPAY_KEY_SECRET: ${env:RAZORPAY_KEY_SECRET}
+    RAZORPAY_WEBHOOK_SECRET: ${env:RAZORPAY_WEBHOOK_SECRET}
+    RAZORPAY_PRO_MONTHLY_PLAN_ID: ${env:RAZORPAY_PRO_MONTHLY_PLAN_ID, ''}
+    RAZORPAY_PRO_YEARLY_PLAN_ID: ${env:RAZORPAY_PRO_YEARLY_PLAN_ID, ''}
+    RAZORPAY_PRO_WEEKLY_PLAN_ID: ${env:RAZORPAY_PRO_WEEKLY_PLAN_ID, ''}
+    RAZORPAY_PRO_MONTHLY_TOTAL_COUNT: ${env:RAZORPAY_PRO_MONTHLY_TOTAL_COUNT, '120'}
+    RAZORPAY_PRO_YEARLY_TOTAL_COUNT: ${env:RAZORPAY_PRO_YEARLY_TOTAL_COUNT, '10'}
+    RAZORPAY_PRO_WEEKLY_TOTAL_COUNT: ${env:RAZORPAY_PRO_WEEKLY_TOTAL_COUNT, '520'}
+    GOOGLE_PLAY_PACKAGE_NAME: ${env:GOOGLE_PLAY_PACKAGE_NAME}
+    GOOGLE_PLAY_RTDN_SECRET: ${env:GOOGLE_PLAY_RTDN_SECRET, ''}
+    GOOGLE_PLAY_RTDN_SERVICE_ACCOUNT: ${env:GOOGLE_PLAY_RTDN_SERVICE_ACCOUNT, ''}
+    SENTRY_DSN: ${env:SENTRY_DSN, ''}
+    SENTRY_ENVIRONMENT: ${env:SENTRY_ENVIRONMENT, self:provider.stage}
+    SENTRY_RELEASE: ${env:SENTRY_RELEASE, ''}
+    SENTRY_TRACES_SAMPLE_RATE: ${env:SENTRY_TRACES_SAMPLE_RATE, '0.1'}
+    SENTRY_PROFILES_SAMPLE_RATE: ${env:SENTRY_PROFILES_SAMPLE_RATE, '0.0'}
+    S3_BUCKET: ${env:S3_BUCKET, ''}
+    PIKA_AWS_REGION: ${env:AWS_REGION, 'ap-south-1'}
+    APP_CONFIG_PARAMETER_PREFIX: /${self:service}/${self:provider.stage}
+    UPLOAD_PROCESSING_QUEUE_URL:
+      Ref: UploadProcessingQueue
+    PRO_UPLOAD_PROCESSING_QUEUE_URL:
+      Ref: ProUploadProcessingQueue
+    GEMINI_GENERATION_QUEUE_URL:
+      Ref: GeminiGenerationQueue
+    GROQ_GENERATION_QUEUE_URL:
+      Ref: GroqGenerationQueue
+    REDUCE_QUEUE_URL:
+      Ref: ReduceQueue
+    YOUTUBE_PROCESSING_QUEUE_URL:
+      Ref: YouTubeProcessingQueue
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - ssm:GetParameter
+            - ssm:GetParametersByPath
+          Resource:
+            - arn:aws:ssm:${aws:region}:${aws:accountId}:parameter/${self:service}/${self:provider.stage}/supabase_url
+            - arn:aws:ssm:${aws:region}:${aws:accountId}:parameter/${self:service}/${self:provider.stage}/fcm_service_account_json
+            - arn:aws:ssm:${aws:region}:${aws:accountId}:parameter/${self:service}/${self:provider.stage}/google_play_service_account_json
+        - Effect: Allow
+          Action:
+            - sqs:SendMessage
+            - sqs:ReceiveMessage
+            - sqs:DeleteMessage
+            - sqs:GetQueueAttributes
+          Resource:
+            - Fn::GetAtt:
+                - UploadProcessingQueue
+                - Arn
+            - Fn::GetAtt:
+                - ProUploadProcessingQueue
+                - Arn
+            - Fn::GetAtt:
+                - ProUploadProcessingDeadLetterQueue
+                - Arn
+            - Fn::GetAtt:
+                - UploadProcessingDeadLetterQueue
+                - Arn
+            - Fn::GetAtt:
+                - GeminiGenerationQueue
+                - Arn
+            - Fn::GetAtt:
+                - GeminiGenerationDeadLetterQueue
+                - Arn
+            - Fn::GetAtt:
+                - GroqGenerationQueue
+                - Arn
+            - Fn::GetAtt:
+                - GroqGenerationDeadLetterQueue
+                - Arn
+            - Fn::GetAtt:
+                - ReduceQueue
+                - Arn
+            - Fn::GetAtt:
+                - ReduceDeadLetterQueue
+                - Arn
+            - Fn::GetAtt:
+                - YouTubeProcessingQueue
+                - Arn
+            - Fn::GetAtt:
+                - YouTubeProcessingDeadLetterQueue
+                - Arn
+        - Effect: Allow
+          Action:
+            - s3:GetObject
+            - s3:PutObject
+            - s3:DeleteObject
+          Resource:
+            - arn:aws:s3:::${env:S3_BUCKET}/*
+
+functions:
+  app:
+    handler: lamda_handler.handler
+    timeout: 30 # FastAPI generation can take up to 30 seconds
+    memorySize: 512 # Adequate memory for PDF parsing & logic
+    events:
+      - httpApi: '*'
+
+  uploadWorker:
+    handler: app/pipeline_workers.upload_orchestrator_handler
+    timeout: 900
+    memorySize: 1024
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt:
+              - UploadProcessingQueue
+              - Arn
+          batchSize: 1
+          maximumConcurrency: 2
+
+  proUploadWorker:
+    handler: app/pipeline_workers.upload_orchestrator_handler
+    timeout: 900
+    memorySize: 1536
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt:
+              - ProUploadProcessingQueue
+              - Arn
+          batchSize: 1
+          maximumConcurrency: 3
+
+  geminiChunkWorker:
+    handler: app/pipeline_workers.gemini_chunk_handler
+    timeout: 600
+    memorySize: 512
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt:
+              - GeminiGenerationQueue
+              - Arn
+          batchSize: 1
+          maximumConcurrency: 2
+
+  groqChunkWorker:
+    handler: app/pipeline_workers.groq_chunk_handler
+    timeout: 600
+    memorySize: 512
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt:
+              - GroqGenerationQueue
+              - Arn
+          batchSize: 1
+          maximumConcurrency: 2
+
+  reducerWorker:
+    handler: app/pipeline_workers.reducer_handler
+    timeout: 300
+    memorySize: 512
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt:
+              - ReduceQueue
+              - Arn
+          batchSize: 1
+
+  youtubeWorker:
+    handler: app/pipeline_workers.youtube_worker_handler
+    timeout: 900
+    memorySize: 512
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt:
+              - YouTubeProcessingQueue
+              - Arn
+          batchSize: 1
+
+  cleanupWorker:
+    handler: app/cleanup_worker.handler
+    timeout: 300
+    memorySize: 256
+    events:
+      - schedule:
+          rate: cron(15 19 * * ? *) # 12:45 AM IST daily deferred cleanup
+  
+  notificationService:
+    handler: notificationservices/lambda_function.handler
+    timeout: 60
+    memorySize: 256
+    events:
+      - schedule:
+          rate: cron(30 2 * * ? *) # 8:00 AM IST
+          input:
+            job_type: SLOT_8AM
+      - schedule:
+          rate: cron(30 4 * * ? *) # 10:00 AM IST
+          input:
+            job_type: SLOT_10AM
+      - schedule:
+          rate: cron(30 7 * * ? *) # 1:00 PM IST
+          input:
+            job_type: SLOT_1PM
+
+      - schedule:
+          rate: cron(30 12 * * ? *) # 6:00 PM IST
+          input:
+            job_type: SLOT_6PM
+      - schedule:
+          rate: cron(30 15 * * ? *) # 9:00 PM IST
+          input:
+            job_type: SLOT_9PM
+plugins:
+  - serverless-python-requirements
+
+package:
+  individually: false
+  patterns:
+    - '!node_modules/**'
+    - '!.env'
+    - '!pikavenv/**'
+    - '!.venv/**'
+    - '!package.json'
+    - '!package-lock.json'
+    - '!.git/**'
+    - '!__pycache__/**'
+    - '!**/*.pyc'
+    - 'app/**'
+    - 'lamda_handler.py'
+    - 'notificationservices/**'
+    - 'credentials/**'
+
+resources:
+  Resources:
+    UploadProcessingDeadLetterQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:service}-${self:provider.stage}-upload-processing-dlq
+        MessageRetentionPeriod: 1209600
+    UploadProcessingQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:service}-${self:provider.stage}-upload-processing
+        VisibilityTimeout: 960
+        MessageRetentionPeriod: 1209600
+        RedrivePolicy:
+          deadLetterTargetArn:
+            Fn::GetAtt:
+              - UploadProcessingDeadLetterQueue
+              - Arn
+          maxReceiveCount: 3
+    ProUploadProcessingDeadLetterQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:service}-${self:provider.stage}-pro-upload-processing-dlq
+        MessageRetentionPeriod: 1209600
+    ProUploadProcessingQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:service}-${self:provider.stage}-pro-upload-processing
+        VisibilityTimeout: 960
+        MessageRetentionPeriod: 1209600
+        RedrivePolicy:
+          deadLetterTargetArn:
+            Fn::GetAtt:
+              - ProUploadProcessingDeadLetterQueue
+              - Arn
+          maxReceiveCount: 3
+    GeminiGenerationDeadLetterQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:service}-${self:provider.stage}-gemini-generation-dlq
+        MessageRetentionPeriod: 1209600
+    GeminiGenerationQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:service}-${self:provider.stage}-gemini-generation
+        VisibilityTimeout: 660
+        MessageRetentionPeriod: 1209600
+        RedrivePolicy:
+          deadLetterTargetArn:
+            Fn::GetAtt:
+              - GeminiGenerationDeadLetterQueue
+              - Arn
+          maxReceiveCount: 3
+    GroqGenerationDeadLetterQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:service}-${self:provider.stage}-groq-generation-dlq
+        MessageRetentionPeriod: 1209600
+    GroqGenerationQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:service}-${self:provider.stage}-groq-generation
+        VisibilityTimeout: 660
+        MessageRetentionPeriod: 1209600
+        RedrivePolicy:
+          deadLetterTargetArn:
+            Fn::GetAtt:
+              - GroqGenerationDeadLetterQueue
+              - Arn
+          maxReceiveCount: 3
+    ReduceDeadLetterQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:service}-${self:provider.stage}-reduce-dlq
+        MessageRetentionPeriod: 1209600
+    ReduceQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:service}-${self:provider.stage}-reduce
+        VisibilityTimeout: 360
+        MessageRetentionPeriod: 1209600
+        RedrivePolicy:
+          deadLetterTargetArn:
+            Fn::GetAtt:
+              - ReduceDeadLetterQueue
+              - Arn
+          maxReceiveCount: 3
+    YouTubeProcessingDeadLetterQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:service}-${self:provider.stage}-youtube-processing-dlq
+        MessageRetentionPeriod: 1209600
+    YouTubeProcessingQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:service}-${self:provider.stage}-youtube-processing
+        VisibilityTimeout: 960
+        MessageRetentionPeriod: 1209600
+        RedrivePolicy:
+          deadLetterTargetArn:
+            Fn::GetAtt:
+              - YouTubeProcessingDeadLetterQueue
+              - Arn
+          maxReceiveCount: 3
+
+custom:
+  pythonRequirements:
+    dockerizePip: ${env:DOCKERIZE_PIP, 'true'}
+    layer: false
+    zip: false
+    slim: true

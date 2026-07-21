@@ -1,0 +1,84 @@
+{
+  "expo": {
+    "name": "pikadecks",
+    "slug": "pikadecks",
+    "owner": "nameisrks-organization",
+    "version": "1.0.0",
+    "orientation": "default",
+    "icon": "./assets/Pika/appIcon.png",
+    "scheme": "pikadecks",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "icon": "./assets/Pika/appIcon.png"
+    },
+    "android": {
+      "jsEngine": "hermes",
+      "googleServicesFile": "./google-services.json",
+      "permissions": [
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.VIBRATE"
+      ],
+      "adaptiveIcon": {
+        "backgroundColor": "#fdfaf2",
+        "foregroundImage": "./assets/Pika/appIcon.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.nameisrk.pikadecks",
+      "resizableActivity": true
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/Pika/appIcon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#fdfaf2",
+          "image": "./assets/Pika/appIcon.png",
+          "imageWidth": 200,
+          "android": {
+            "image": "./assets/Pika/appIcon.png",
+            "imageWidth": 200
+          }
+        }
+      ],
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "organization": "ramakrishna-t7",
+          "project": "react-native"
+        }
+      ],
+      "@react-native-firebase/app",
+      "expo-status-bar",
+      "expo-web-browser"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "02a774ae-e237-44fe-986e-bb0d64b90bd2"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/02a774ae-e237-44fe-986e-bb0d64b90bd2"
+    }
+  }
+}

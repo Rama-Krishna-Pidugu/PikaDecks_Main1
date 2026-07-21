@@ -1,0 +1,31 @@
+# dependencies
+node_modules/
+
+# Python virtual environments
+.venv/
+venv/
+pikavenv/
+
+# Python cache and test output
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+htmlcov/
+
+# local env files and secrets
+.env
+.env.local
+.env*.local
+
+# Serverless Framework
+.serverless/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+

@@ -1,0 +1,16 @@
+fastapi
+uvicorn
+python-dotenv
+pyjwt
+cryptography
+requests
+httpx
+mangum
+groq
+pypdf
+boto3
+sentry-sdk[fastapi]
+firebase-admin
+google-auth
+stripe
+razorpay

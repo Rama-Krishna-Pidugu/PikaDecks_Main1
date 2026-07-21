@@ -1,0 +1,81 @@
+service: pikadecks-mcp
+
+useDotenv: true
+
+provider:
+  name: aws
+  runtime: python3.12
+  region: ap-south-1
+  stage: ${opt:stage, 'dev'}
+  httpApi:
+    cors:
+      allowedOrigins:
+        - https://pikadecks.app
+        - https://chatgpt.com
+        - https://chat.openai.com
+        - https://claude.ai
+      allowedHeaders:
+        - Accept
+        - Content-Type
+        - Authorization
+        - Mcp-Session-Id
+        - MCP-Protocol-Version
+        - Last-Event-ID
+        - X-Request-ID
+      allowedMethods:
+        - GET
+        - POST
+        - OPTIONS
+      exposedResponseHeaders:
+        - X-Request-ID
+        - Mcp-Session-Id
+        - MCP-Protocol-Version
+  environment:
+    SERVICE_NAME: PikaDecks MCP
+    VERSION: 1.0.0
+    ENVIRONMENT: ${self:provider.stage}
+    LOG_LEVEL: ${env:LOG_LEVEL, 'INFO'}
+    ALLOWED_ORIGINS: ${env:ALLOWED_ORIGINS, 'https://pikadecks.app,https://chatgpt.com,https://chat.openai.com,https://claude.ai'}
+    SENTRY_DSN: ${env:SENTRY_DSN, ''}
+    SENTRY_ENVIRONMENT: ${env:SENTRY_ENVIRONMENT, 'production'}
+    PIKADECKS_API_URL: ${env:PIKADECKS_API_URL, ''}
+    FRONTEND_URL: ${env:FRONTEND_URL, ''}
+    CLERK_JWKS_URL: ${env:CLERK_JWKS_URL, ''}
+    MCP_JWT_SECRET: ${env:MCP_JWT_SECRET, ''}
+
+functions:
+  app:
+    handler: lamda_handler.handler
+    timeout: 30
+    memorySize: 512
+    events:
+      - httpApi: '*'
+
+plugins:
+  - serverless-python-requirements
+
+package:
+  individually: false
+  patterns:
+    - '!node_modules/**'
+    - '!.env'
+    - '!.venv/**'
+    - '!venv/**'
+    - '!pikavenv/**'
+    - '!.git/**'
+    - '!__pycache__/**'
+    - '!**/*.pyc'
+    - '!src/**'
+    - '!tests/**'
+    - '!Dockerfile'
+    - '!mcp_client_config.json'
+    - '!pyproject.toml'
+    - 'app/**'
+    - 'lamda_handler.py'
+
+custom:
+  pythonRequirements:
+    dockerizePip: ${env:DOCKERIZE_PIP, 'true'}
+    layer: false
+    zip: false
+    slim: false

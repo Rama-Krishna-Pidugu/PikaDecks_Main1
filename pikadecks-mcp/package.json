@@ -1,0 +1,20 @@
+{
+  "name": "pikadecks-mcp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "PikaDecks Phase 1 MCP Serverless service",
+  "scripts": {
+    "deploy": "serverless deploy --stage dev",
+    "deploy:test": "serverless deploy --stage test",
+    "deploy:prod": "serverless deploy --stage prod",
+    "package": "serverless package --stage dev",
+    "package:test": "serverless package --stage test",
+    "package:prod": "serverless package --stage prod",
+    "lint": "python -m compileall app lamda_handler.py",
+    "test": "python -m pytest"
+  },
+  "devDependencies": {
+    "serverless": "^3.40.0",
+    "serverless-python-requirements": "^6.1.2"
+  }
+}

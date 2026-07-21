@@ -1,0 +1,275 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-brand-yellow: var(--brand-yellow);
+  --color-brand-red: var(--brand-red);
+  --color-brand-ink: var(--brand-ink);
+
+  --font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  --shadow-pop: 0 12px 30px -16px color-mix(in oklab, var(--brand-yellow) 64%, #2A241D 22%);
+  --shadow-soft: 0 10px 28px -18px color-mix(in oklab, var(--brand-yellow) 58%, #2A241D 28%);
+  --shadow-glow: 0 0 0 5px color-mix(in oklab, var(--brand-yellow) 18%, transparent), 0 18px 45px -26px color-mix(in oklab, var(--brand-yellow) 54%, transparent);
+  --shadow-glow-red: 0 0 0 5px color-mix(in oklab, var(--brand-red) 14%, transparent), 0 18px 45px -26px color-mix(in oklab, var(--brand-red) 38%, transparent);
+}
+
+:root {
+  --radius: 1rem;
+
+  --brand-yellow: oklch(0.81 0.14 62);   /* #F4B98A (Warm Peach) */
+  --brand-red: oklch(0.47 0.23 277);      /* #5B4FE6 (Deep Purple) */
+  --brand-ink: oklch(0.24 0.012 85);     /* #2A241D (Warm Charcoal) */
+
+  --background: oklch(0.98 0.008 85);    /* #FBF8F2 (Warm Beige) */
+  --foreground: oklch(0.24 0.012 85);    /* #2A241D */
+  --card: oklch(1 0 0);                  /* #FFFFFF */
+  --card-foreground: oklch(0.24 0.012 85);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.24 0.012 85);
+  --primary: oklch(0.47 0.23 277);       /* #5B4FE6 (Deep Purple) */
+  --primary-foreground: oklch(0.99 0 0); /* #FCFCFE */
+  --secondary: oklch(0.96 0.01 85);      /* #F4EFE6 */
+  --secondary-foreground: oklch(0.35 0.01 85); /* #4A4136 */
+  --muted: oklch(0.95 0.01 85);          /* #F2EEE5 */
+  --muted-foreground: oklch(0.55 0.01 85); /* #867E70 */
+  --accent: oklch(0.47 0.23 277);        /* #5B4FE6 */
+  --accent-foreground: oklch(0.99 0 0);
+  --destructive: oklch(0.56 0.21 28);    /* #E5544C (Neobrutalist Red) */
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.92 0.01 85);         /* #EAE5DA (Warm Gray-Brown) */
+  --input: oklch(0.92 0.01 85);          /* #EAE5DA */
+  --ring: oklch(0.47 0.23 277);          /* #5B4FE6 */
+}
+
+.dark {
+  --background: oklch(0.18 0.01 85);     /* Sleek warm dark background */
+  --foreground: oklch(0.98 0.005 85);
+  --card: oklch(0.22 0.01 85);
+  --card-foreground: oklch(0.98 0.005 85);
+  --popover: oklch(0.22 0.01 85);
+  --popover-foreground: oklch(0.98 0.005 85);
+  --primary: oklch(0.81 0.14 62);        /* Warm Peach accent in dark mode */
+  --primary-foreground: oklch(0.24 0.012 85);
+  --secondary: oklch(0.26 0.01 85);
+  --secondary-foreground: oklch(0.98 0.005 85);
+  --muted: oklch(0.26 0.01 85);
+  --muted-foreground: oklch(0.7 0.005 85);
+  --accent: oklch(0.81 0.14 62);
+  --accent-foreground: oklch(0.24 0.012 85);
+  --destructive: oklch(0.56 0.21 28);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 18%);
+  --ring: oklch(0.81 0.14 62);
+}
+
+@layer base {
+  * { border-color: var(--color-border); }
+  html { scroll-behavior: smooth; }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4, .font-display { font-family: var(--font-display); letter-spacing: 0; }
+}
+
+@layer utilities {
+  .bg-grid {
+    background-image:
+      linear-gradient(to right, color-mix(in oklab, var(--brand-ink) 6%, transparent) 1px, transparent 1px),
+      linear-gradient(to bottom, color-mix(in oklab, var(--brand-ink) 6%, transparent) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  .bg-radial-yellow {
+    background: radial-gradient(ellipse 80% 60% at 50% 0%, color-mix(in oklab, var(--brand-yellow) 55%, transparent), transparent 70%);
+  }
+  .glass {
+    background: color-mix(in oklab, var(--card) 70%, transparent);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+  .btn-pop {
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-soft);
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .btn-pop:hover { transform: translateY(-1px); box-shadow: var(--shadow-pop); }
+  .btn-pop:active { transform: translateY(1px); box-shadow: var(--shadow-soft); }
+  .glow-yellow { box-shadow: var(--shadow-glow); }
+  .glow-red { box-shadow: var(--shadow-glow-red); }
+  .text-balance { text-wrap: balance; }
+}
+
+@keyframes float-y {
+  0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); }
+  50% { transform: translateY(-14px) rotate(var(--r, 0deg)); }
+}
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--brand-yellow) 60%, transparent); }
+  50% { box-shadow: 0 0 0 18px color-mix(in oklab, var(--brand-yellow) 0%, transparent); }
+}
+.animate-float { animation: float-y 6s ease-in-out infinite; }
+.animate-pulse-glow { animation: pulse-glow 2.4s ease-out infinite; }
+
+/* -------------------------------------------------------------------------
+   mathtext-prose â€” scoped typography for Markdown rendered inside flashcards
+   (MathText component). Inherits font/color from parent; just re-adds the
+   semantic structure that Tailwind's preflight removes.
+   ------------------------------------------------------------------------- */
+.mathtext-prose { line-height: 1.65; }
+.mathtext-prose > *:first-child { margin-top: 0; }
+.mathtext-prose > *:last-child  { margin-bottom: 0; }
+
+/* Headings */
+.mathtext-prose h1 { font-size: 1.5em;  font-weight: 800; margin: 0.6em 0 0.3em; line-height: 1.25; }
+.mathtext-prose h2 { font-size: 1.25em; font-weight: 700; margin: 0.6em 0 0.3em; line-height: 1.3;  }
+.mathtext-prose h3 { font-size: 1.1em;  font-weight: 700; margin: 0.5em 0 0.25em; }
+.mathtext-prose h4, .mathtext-prose h5, .mathtext-prose h6 { font-size: 1em; font-weight: 600; margin: 0.5em 0 0.2em; }
+
+/* Paragraphs */
+.mathtext-prose p { margin: 0.4em 0; }
+
+/* Bold / Italic / Strikethrough â€” browsers reset these; restore them */
+.mathtext-prose strong { font-weight: 700; }
+.mathtext-prose em     { font-style: italic; }
+.mathtext-prose del    { text-decoration: line-through; opacity: 0.7; }
+
+/* Lists */
+.mathtext-prose ul,
+.mathtext-prose ol {
+  display: table;        /* shrinks to content width so margin:auto can center it */
+  margin: 0.4em auto;
+  padding-left: 1.4em;
+  text-align: left;      /* bullets stay tight to text regardless of parent alignment */
+}
+.mathtext-prose ul { list-style-type: disc; }
+.mathtext-prose ol { list-style-type: decimal; }
+.mathtext-prose li { margin: 0.2em 0; }
+/* Nested lists — switch back to block so they inherit the li width */
+.mathtext-prose li > ul,
+.mathtext-prose li > ol {
+  display: block;
+  margin: 0.15em 0;
+  padding-left: 1.2em;
+}
+
+/* Task lists */
+.mathtext-prose input[type="checkbox"] {
+  appearance: auto;
+  margin-right: 0.4em;
+  vertical-align: middle;
+  pointer-events: none;
+}
+
+/* Blockquotes */
+.mathtext-prose blockquote {
+  border-left: 3px solid var(--color-primary);
+  margin: 0.5em 0;
+  padding: 0.25em 0.75em;
+  background: color-mix(in oklab, var(--color-primary) 6%, transparent);
+  border-radius: 0 0.4rem 0.4rem 0;
+  color: var(--color-muted-foreground);
+  font-style: italic;
+}
+.mathtext-prose blockquote > p { margin: 0; }
+
+/* Horizontal rule */
+.mathtext-prose hr {
+  border: none;
+  border-top: 1.5px solid var(--color-border);
+  margin: 0.75em 0;
+}
+
+/* Inline code */
+.mathtext-prose code:not(pre > code) {
+  background: color-mix(in oklab, var(--color-muted) 80%, transparent);
+  border: 1px solid var(--color-border);
+  border-radius: 0.3em;
+  padding: 0.1em 0.35em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.87em;
+}
+
+/* Code blocks */
+.mathtext-prose pre {
+  background: color-mix(in oklab, var(--color-muted) 60%, transparent);
+  border: 1px solid var(--color-border);
+  border-radius: 0.6rem;
+  padding: 0.75em 1em;
+  overflow-x: auto;
+  margin: 0.5em 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85em;
+  line-height: 1.55;
+}
+.mathtext-prose pre code { background: none; border: none; padding: 0; font-size: inherit; }
+
+/* Tables */
+.mathtext-prose table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.5em 0;
+  font-size: 0.9em;
+}
+.mathtext-prose th,
+.mathtext-prose td {
+  border: 1px solid var(--color-border);
+  padding: 0.35em 0.65em;
+  text-align: left;
+}
+.mathtext-prose th {
+  background: color-mix(in oklab, var(--color-muted) 80%, transparent);
+  font-weight: 700;
+}
+.mathtext-prose tr:nth-child(even) td {
+  background: color-mix(in oklab, var(--color-muted) 30%, transparent);
+}
+
+/* Links */
+.mathtext-prose a {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.mathtext-prose a:hover { opacity: 0.8; }
+
+/* KaTeX block display â€” ensure it doesn't overflow card */
+.mathtext-prose .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  margin: 0.5em 0;
+}

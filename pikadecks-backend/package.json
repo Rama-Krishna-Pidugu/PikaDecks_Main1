@@ -1,0 +1,19 @@
+{
+  "name": "pikadecks-backend",
+  "version": "1.0.0",
+  "description": "Serverless packaging dependencies for PikaDecks Backend",
+  "scripts": {
+    "lint": "python -m compileall app lamda_handler.py notificationservices",
+    "test": "python -m pytest",
+    "deploy": "serverless deploy --stage dev",
+    "deploy:prod": "serverless deploy --stage prod",
+    "deploy:test": "serverless deploy --stage test",
+    "deploy:test:no-docker": "set DOCKERIZE_PIP=false&& serverless deploy --stage test",
+    "package:test": "serverless package --stage test",
+    "package:prod": "serverless package --stage prod"
+  },
+  "devDependencies": {
+    "serverless": "^3.38.0",
+    "serverless-python-requirements": "^6.0.0"
+  }
+}

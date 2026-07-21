@@ -1,0 +1,36 @@
+# dependencies
+node_modules/
+
+# python virtual environments
+pikavenv/
+.venv/
+venv/
+.env
+.pyc
+# python cache and bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+
+# environment variables
+.env
+.env.local
+
+# service account keys and local notification test payloads
+service.json
+*service-account*.json
+firebase-*.json
+test-all-event.json
+
+# serverless framework
+.serverless/
+
+# credentials folder for deployments
+credentials/
+
+# scratch/temporary development files
+scratch/
+

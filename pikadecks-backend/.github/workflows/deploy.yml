@@ -1,0 +1,256 @@
+name: Backend CI/CD
+
+on:
+  push:
+    branches:
+      - main
+      - developer
+      - notification-thing
+  workflow_dispatch:
+
+concurrency:
+  group: backend-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    name: Test and package backend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Install Python dependencies
+        run: python -m pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Run Python compile check
+        run: npm run lint
+
+      - name: Run backend tests
+        env:
+          SENTRY_ENVIRONMENT: test
+          OAUTH_JWT_SECRET: ${{ secrets.OAUTH_JWT_SECRET || 'ci-dummy-jwt-secret' }}
+          OAUTH_REFRESH_SECRET: ${{ secrets.OAUTH_REFRESH_SECRET || 'ci-dummy-refresh-secret' }}
+        run: npm test
+
+      - name: Check required deployment secrets
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          CLERK_JWKS_URL: ${{ secrets.CLERK_JWKS_URL }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          FCM_SERVICE_ACCOUNT_JSON: ${{ secrets.FCM_SERVICE_ACCOUNT_JSON }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          OAUTH_JWT_SECRET: ${{ secrets.OAUTH_JWT_SECRET }}
+          OAUTH_REFRESH_SECRET: ${{ secrets.OAUTH_REFRESH_SECRET }}
+        run: |
+          test -n "$AWS_ACCESS_KEY_ID" || (echo "Missing AWS_ACCESS_KEY_ID secret" && exit 1)
+          test -n "$AWS_SECRET_ACCESS_KEY" || (echo "Missing AWS_SECRET_ACCESS_KEY secret" && exit 1)
+          test -n "$SUPABASE_URL" || (echo "Missing SUPABASE_URL secret" && exit 1)
+          test -n "$SUPABASE_KEY$SUPABASE_SERVICE_KEY" || (echo "Missing SUPABASE_KEY or SUPABASE_SERVICE_KEY secret" && exit 1)
+          test -n "$CLERK_JWKS_URL" || (echo "Missing CLERK_JWKS_URL secret" && exit 1)
+          # test -n "$GROQ_API_KEY" || (echo "Missing GROQ_API_KEY secret" && exit 1)
+          test -n "$FCM_SERVICE_ACCOUNT_JSON" || (echo "Missing FCM_SERVICE_ACCOUNT_JSON secret" && exit 1)
+          test -n "$SENTRY_DSN" || (echo "Missing SENTRY_DSN secret" && exit 1)
+          test -n "$OAUTH_JWT_SECRET" || (echo "Missing OAUTH_JWT_SECRET secret" && exit 1)
+          test -n "$OAUTH_REFRESH_SECRET" || (echo "Missing OAUTH_REFRESH_SECRET secret" && exit 1)
+
+      - name: Generate dummy credential files for validation
+        run: |
+          mkdir -p credentials
+          echo '{}' > credentials/firebase-service-account.json
+          echo '{}' > credentials/google-play-service-account.json
+
+      - name: Validate Serverless package for target stage
+        env:
+          SLS_TELEMETRY_DISABLED: '1'
+          DOCKERIZE_PIP: 'false'
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID || 'ci-dummy-access-key' }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY || 'ci-dummy-secret-key' }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://example.supabase.co' }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY || 'ci-dummy-supabase-key' }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY || 'ci-dummy-service-key' }}
+          CLERK_JWKS_URL: ${{ secrets.CLERK_JWKS_URL || 'https://example.com/.well-known/jwks.json' }}
+          S3_BUCKET: ${{ secrets.S3_BUCKET || 'ci-dummy-bucket' }}
+          AWS_REGION: ${{ secrets.AWS_REGION || 'ap-south-1' }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY || '' }}
+          GROQ_MODEL: ${{ secrets.GROQ_MODEL || 'llama-3.3-70b-versatile' }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || '' }}
+          GEMINI_MODEL: ${{ secrets.GEMINI_MODEL || 'gemini-3.1-pro-preview' }}
+          AI_GLOBAL_REQUESTS_PER_MINUTE: ${{ secrets.AI_GLOBAL_REQUESTS_PER_MINUTE || '10' }}
+          AI_GLOBAL_TOKENS_PER_5_MINUTES: ${{ secrets.AI_GLOBAL_TOKENS_PER_5_MINUTES || '30000' }}
+          AI_MAX_OUTPUT_TOKENS: ${{ secrets.AI_MAX_OUTPUT_TOKENS || '2048' }}
+          OAUTH_JWT_SECRET: ${{ secrets.OAUTH_JWT_SECRET || 'ci-dummy-jwt-secret' }}
+          OAUTH_REFRESH_SECRET: ${{ secrets.OAUTH_REFRESH_SECRET || 'ci-dummy-refresh-secret' }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN || '' }}
+          SENTRY_ENVIRONMENT: ${{ github.ref_name == 'main' && 'production' || 'test' }}
+          BILLING_ENABLED: ${{ secrets.BILLING_ENABLED || 'false' }}
+          RAZORPAY_KEY_ID: ${{ secrets.RAZORPAY_KEY_ID || '' }}
+          RAZORPAY_KEY_SECRET: ${{ secrets.RAZORPAY_KEY_SECRET || '' }}
+          RAZORPAY_WEBHOOK_SECRET: ${{ secrets.RAZORPAY_WEBHOOK_SECRET || '' }}
+          RAZORPAY_PRO_WEEKLY_PLAN_ID: ${{ secrets.RAZORPAY_PRO_WEEKLY_PLAN_ID || '' }}
+          GOOGLE_PLAY_PACKAGE_NAME: ${{ secrets.GOOGLE_PLAY_PACKAGE_NAME || '' }}
+          GOOGLE_PLAY_RTDN_SECRET: ${{ secrets.GOOGLE_PLAY_RTDN_SECRET || '' }}
+        run: npx serverless package --stage ${{ github.ref_name == 'main' && 'prod' || 'test' }}
+
+  deploy-test:
+    name: Deploy backend to test
+    runs-on: ubuntu-latest
+    needs: ci
+    if: github.ref_name == 'developer' || github.ref_name == 'notification-thing'
+    environment: test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      # - name: Validate AI provider config
+      #   env:
+      #     GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      #   run: test -n "$GROQ_API_KEY" || (echo "Missing GROQ_API_KEY secret" && exit 1)
+
+      - name: Generate credential files from Secrets
+        env:
+          FCM_SERVICE_ACCOUNT_JSON: ${{ secrets.FCM_SERVICE_ACCOUNT_JSON }}
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          mkdir -p credentials
+          echo "$FCM_SERVICE_ACCOUNT_JSON" > credentials/firebase-service-account.json
+          echo "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON" > credentials/google-play-service-account.json
+
+      - name: Deploy test via Serverless
+        env:
+          SLS_TELEMETRY_DISABLED: '1'
+          DOCKERIZE_PIP: 'false'
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          CLERK_JWKS_URL: ${{ secrets.CLERK_JWKS_URL }}
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_MODEL: ${{ secrets.GROQ_MODEL || 'llama-3.3-70b-versatile' }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ secrets.GEMINI_MODEL || 'gemini-3.1-pro-preview' }}
+          AI_GLOBAL_REQUESTS_PER_MINUTE: ${{ secrets.AI_GLOBAL_REQUESTS_PER_MINUTE || '10' }}
+          AI_GLOBAL_TOKENS_PER_5_MINUTES: ${{ secrets.AI_GLOBAL_TOKENS_PER_5_MINUTES || '30000' }}
+          AI_MAX_OUTPUT_TOKENS: ${{ secrets.AI_MAX_OUTPUT_TOKENS || '2048' }}
+          OAUTH_JWT_SECRET: ${{ secrets.OAUTH_JWT_SECRET }}
+          OAUTH_REFRESH_SECRET: ${{ secrets.OAUTH_REFRESH_SECRET }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          SENTRY_ENVIRONMENT: test
+          SENTRY_RELEASE: ${{ github.sha }}
+          BILLING_ENABLED: ${{ secrets.BILLING_ENABLED }}
+          RAZORPAY_KEY_ID: ${{ secrets.RAZORPAY_KEY_ID }}
+          RAZORPAY_KEY_SECRET: ${{ secrets.RAZORPAY_KEY_SECRET }}
+          RAZORPAY_WEBHOOK_SECRET: ${{ secrets.RAZORPAY_WEBHOOK_SECRET }}
+          RAZORPAY_PRO_WEEKLY_PLAN_ID: ${{ secrets.RAZORPAY_PRO_WEEKLY_PLAN_ID }}
+          RAZORPAY_PRO_MONTHLY_PLAN_ID: ${{ secrets.RAZORPAY_PRO_MONTHLY_PLAN_ID }}
+          RAZORPAY_PRO_YEARLY_PLAN_ID: ${{ secrets.RAZORPAY_PRO_YEARLY_PLAN_ID }}
+          YOUTUBE_TRANSCRIPTOR_RAPIDAPI_KEY: ${{ secrets.YOUTUBE_TRANSCRIPTOR_RAPIDAPI_KEY }}
+          GOOGLE_PLAY_PACKAGE_NAME: ${{ secrets.GOOGLE_PLAY_PACKAGE_NAME }}
+          GOOGLE_PLAY_RTDN_SECRET: ${{ secrets.GOOGLE_PLAY_RTDN_SECRET }}
+          GOOGLE_PLAY_RTDN_SERVICE_ACCOUNT: ${{ secrets.GOOGLE_PLAY_RTDN_SERVICE_ACCOUNT }}
+        run: npm run deploy:test
+
+  deploy-prod:
+    name: Deploy backend to production
+    runs-on: ubuntu-latest
+    needs: ci
+    if: github.ref_name == 'main'
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      # - name: Validate AI provider config
+      #   env:
+      #     GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      #   run: test -n "$GROQ_API_KEY" || (echo "Missing GROQ_API_KEY secret" && exit 1)
+
+      - name: Generate credential files from Secrets
+        env:
+          FCM_SERVICE_ACCOUNT_JSON: ${{ secrets.FCM_SERVICE_ACCOUNT_JSON }}
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          mkdir -p credentials
+          echo "$FCM_SERVICE_ACCOUNT_JSON" > credentials/firebase-service-account.json
+          echo "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON" > credentials/google-play-service-account.json
+
+      - name: Deploy production via Serverless
+        env:
+          SLS_TELEMETRY_DISABLED: '1'
+          DOCKERIZE_PIP: 'false'
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          CLERK_JWKS_URL: ${{ secrets.CLERK_JWKS_URL }}
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_MODEL: ${{ secrets.GROQ_MODEL || 'llama-3.3-70b-versatile' }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ secrets.GEMINI_MODEL || 'gemini-3.1-pro-preview' }}
+          AI_GLOBAL_REQUESTS_PER_MINUTE: ${{ secrets.AI_GLOBAL_REQUESTS_PER_MINUTE || '10' }}
+          AI_GLOBAL_TOKENS_PER_5_MINUTES: ${{ secrets.AI_GLOBAL_TOKENS_PER_5_MINUTES || '30000' }}
+          AI_MAX_OUTPUT_TOKENS: ${{ secrets.AI_MAX_OUTPUT_TOKENS || '2048' }}
+          OAUTH_JWT_SECRET: ${{ secrets.OAUTH_JWT_SECRET }}
+          OAUTH_REFRESH_SECRET: ${{ secrets.OAUTH_REFRESH_SECRET }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          SENTRY_ENVIRONMENT: production
+          SENTRY_RELEASE: ${{ github.sha }}
+          BILLING_ENABLED: ${{ secrets.BILLING_ENABLED }}
+          RAZORPAY_KEY_ID: ${{ secrets.RAZORPAY_KEY_ID }}
+          RAZORPAY_KEY_SECRET: ${{ secrets.RAZORPAY_KEY_SECRET }}
+          RAZORPAY_WEBHOOK_SECRET: ${{ secrets.RAZORPAY_WEBHOOK_SECRET }}
+          RAZORPAY_PRO_WEEKLY_PLAN_ID: ${{ secrets.RAZORPAY_PRO_WEEKLY_PLAN_ID }}
+          RAZORPAY_PRO_MONTHLY_PLAN_ID: ${{ secrets.RAZORPAY_PRO_MONTHLY_PLAN_ID }}
+          RAZORPAY_PRO_YEARLY_PLAN_ID: ${{ secrets.RAZORPAY_PRO_YEARLY_PLAN_ID }}
+          YOUTUBE_TRANSCRIPTOR_RAPIDAPI_KEY: ${{ secrets.YOUTUBE_TRANSCRIPTOR_RAPIDAPI_KEY }}
+          GOOGLE_PLAY_PACKAGE_NAME: ${{ secrets.GOOGLE_PLAY_PACKAGE_NAME }}
+          GOOGLE_PLAY_RTDN_SECRET: ${{ secrets.GOOGLE_PLAY_RTDN_SECRET }}
+          GOOGLE_PLAY_RTDN_SERVICE_ACCOUNT: ${{ secrets.GOOGLE_PLAY_RTDN_SERVICE_ACCOUNT }}
+        run: npx serverless deploy --stage prod
