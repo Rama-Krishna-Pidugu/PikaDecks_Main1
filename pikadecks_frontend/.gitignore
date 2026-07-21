@@ -60,3 +60,4 @@ example
 # Google Play service account keys
 google-play-service-account*.json
 pikadecks-*.json
+google-services.json
