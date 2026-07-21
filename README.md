@@ -218,8 +218,7 @@ VITE_STRIPE_PUBLISHABLE_KEY=your_stripe_key
 
 ## 📼 Demo Video
 
-[Include public YouTube video link here showing: Mobile sync, PDF upload and card generation, and local/production MCP integration]
-
+https://www.youtube.com/watch?v=SglX-F8cNJI
 ---
 
 ## ⚖️ License
